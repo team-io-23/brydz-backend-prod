@@ -1,1 +1,0 @@
-# brydz-backend-prod
