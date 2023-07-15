@@ -2,13 +2,7 @@
 import { allCards, findDeclarer, findLastLegitBid, hideCards, cardComparator, cardValues, trumpValues, isDoubled } from './server-utils';
 import { Bid, Card, Score, Hand, PlayedCard } from './types';
 
-const express = require('express');
-const PORT = process.env.PORT || 8000;
-
-const server = express()
-    .listen(PORT, () => console.log(`Listening on ${PORT}`));
-
-const io = require('socket.io')(server, {
+const io = require('socket.io')(8000, {
     cors: {
         origin: '*',
     }
@@ -253,6 +247,16 @@ io.on('connection', socket => {
         const roomID = playerRooms.get(socket.id);
         if (roomID === undefined) {
             return;
+        }
+
+        const playerID = rooms.get(roomID)!.indexOf(socket.id);
+        const seats = currentSeats.get(roomID)!;
+
+        if (seats.includes(playerID)) {
+            // Player is in a seat.
+            seats[seats.indexOf(playerID)] = -1;
+            currentSeats.set(roomID, seats);
+            io.in(roomID).emit('seat-change', seats);
         }
 
         // Leaving room.
