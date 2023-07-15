@@ -100,7 +100,7 @@ function findDeclarer(bids) {
     var contractTrump = contractBid.trump;
     console.log(contractBid);
     console.log(bids);
-    var declarer = (_a = bids.find(function (bid) { return bid.trump === contractTrump && bid.value !== 'pass'; })) === null || _a === void 0 ? void 0 : _a.bidder;
+    var declarer = (_a = bids.find(function (bid) { return bid.trump === contractTrump && bid.value !== 'pass' && ((bid.bidder % 2) === (contractBid.bidder % 2)); })) === null || _a === void 0 ? void 0 : _a.bidder;
     return declarer;
 }
 exports.findDeclarer = findDeclarer;

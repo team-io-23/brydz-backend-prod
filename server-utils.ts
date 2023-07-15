@@ -111,7 +111,7 @@ export function findDeclarer(bids: Bid[]) {
     console.log(contractBid);
     console.log(bids);
 
-    const declarer: number = bids.find(bid => bid.trump === contractTrump && bid.value !== 'pass')?.bidder!;
+    const declarer: number = bids.find(bid => bid.trump === contractTrump && bid.value !== 'pass' && ((bid.bidder % 2) === (contractBid.bidder % 2)))?.bidder!;
 
     return declarer;
 }
