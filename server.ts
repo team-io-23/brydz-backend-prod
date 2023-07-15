@@ -125,11 +125,15 @@ function getWinner(roomID: number) {
 
 
 export function checkCorrectBid(bid: Bid, bidHistory: Bid[]) {
-    // TODO - lastBid will be used to check for turn order
     const lastLegitBid = findLastLegitBid(bidHistory);
     const lastBid = bidHistory[bidHistory.length - 1];
 
     if (bid === undefined || lastBid === undefined) {
+        return false;
+    }
+
+    // Checking for turn order.
+    if ((lastBid.bidder + 1) % 4 !== bid.bidder) {
         return false;
     }
 
@@ -200,7 +204,7 @@ io.on('connection', socket => {
     
     socket.on('joining-room', (joinedRoomID: number) => {
         if (rooms.get(joinedRoomID)!.length >= 4) {
-            console.log("the room is full");
+
             socket.emit('room-is-full');
             return;
         }
@@ -316,9 +320,7 @@ io.on('connection', socket => {
             }
         }
 
-        console.log(players);
         const orderedPlayers = [players[seats[0]], players[seats[1]], players[seats[2]], players[seats[3]]];
-        console.log(orderedPlayers);
         rooms.set(roomID, orderedPlayers);
 
         io.in(roomID).emit('started-game', rooms.get(roomID)!.map(id => nicknames.get(id)));
@@ -387,11 +389,12 @@ io.on('connection', socket => {
         const bidHistory = biddingHistory.get(roomID)!;
 
         if (!checkCorrectBid(bid, bidHistory)) {
-            console.log("Illegal bid / Not your turn!");
             return;
-        } // TODO - testing, add turn check later
+        }
 
         biddingHistory.get(roomID)!.push(bid);
+
+        io.in(roomID).emit('bid-made', bid);
 
         if (checkForThreePasses(roomID)) {
             // Bidding is over.
@@ -402,11 +405,8 @@ io.on('connection', socket => {
             io.in(roomID).emit('set-turn', currentTurns.get(roomID));
             io.in(roomID).emit('bidding-over');
 
-
             return;
         }
-
-        io.in(roomID).emit('bid-made', bid);
     });
 
 
