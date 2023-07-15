@@ -255,7 +255,7 @@ io.on('connection', function (socket) {
         for (var i = 0; i < 4; i++) {
             if (seats[i] === -1) {
                 // Not all seats are filled.
-                // return; // TODO - uncomment this
+                return;
             }
         }
         var orderedPlayers = [players[seats[0]], players[seats[1]], players[seats[2]], players[seats[3]]];
