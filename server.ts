@@ -321,7 +321,7 @@ io.on('connection', socket => {
         for (let i = 0; i < 4; i++) {
             if (seats[i] === -1) {
                 // Not all seats are filled.
-                // return; // TODO - uncomment this
+                return;
             }
         }
 
