@@ -3,11 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkCorrectBid = void 0;
 // TODO - sockety do jednego ładnego pliku a nie w każdym komponencie osobno
 var server_utils_1 = require("./server-utils");
-var express = require('express');
-var PORT = process.env.PORT || 8000;
-var server = express()
-    .listen(PORT, function () { return console.log("Listening on ".concat(PORT)); });
-var io = require('socket.io')(server, {
+var io = require('socket.io')(8000, {
     cors: {
         origin: '*',
     }
@@ -110,10 +106,13 @@ function getWinner(roomID) {
     return winner;
 }
 function checkCorrectBid(bid, bidHistory) {
-    // TODO - lastBid will be used to check for turn order
     var lastLegitBid = (0, server_utils_1.findLastLegitBid)(bidHistory);
     var lastBid = bidHistory[bidHistory.length - 1];
     if (bid === undefined || lastBid === undefined) {
+        return false;
+    }
+    // Checking for turn order.
+    if ((lastBid.bidder + 1) % 4 !== bid.bidder) {
         return false;
     }
     if (bid.value === "pass") {
@@ -139,7 +138,7 @@ function checkCorrectBid(bid, bidHistory) {
 exports.checkCorrectBid = checkCorrectBid;
 function checkForThreePasses(roomID) {
     var bids = biddingHistory.get(roomID);
-    if (bids.length < 3) {
+    if (bids.length <= 4) { // 4 because we start with a "fake" bid
         return false;
     }
     var passes = 0;
@@ -168,7 +167,6 @@ io.on('connection', function (socket) {
     });
     socket.on('joining-room', function (joinedRoomID) {
         if (rooms.get(joinedRoomID).length >= 4) {
-            console.log("the room is full");
             socket.emit('room-is-full');
             return;
         }
@@ -205,6 +203,14 @@ io.on('connection', function (socket) {
         var roomID = playerRooms.get(socket.id);
         if (roomID === undefined) {
             return;
+        }
+        var playerID = rooms.get(roomID).indexOf(socket.id);
+        var seats = currentSeats.get(roomID);
+        if (seats.includes(playerID)) {
+            // Player is in a seat.
+            seats[seats.indexOf(playerID)] = -1;
+            currentSeats.set(roomID, seats);
+            io.in(roomID).emit('seat-change', seats);
         }
         // Leaving room.
         socket.leave(roomID);
@@ -248,9 +254,7 @@ io.on('connection', function (socket) {
                 // return; // TODO - uncomment this
             }
         }
-        console.log(players);
         var orderedPlayers = [players[seats[0]], players[seats[1]], players[seats[2]], players[seats[3]]];
-        console.log(orderedPlayers);
         rooms.set(roomID, orderedPlayers);
         io.in(roomID).emit('started-game', rooms.get(roomID).map(function (id) { return nicknames.get(id); }));
         io.in(roomID).emit('hand-update', currentHands.get(roomID));
@@ -304,10 +308,10 @@ io.on('connection', function (socket) {
         var roomID = playerRooms.get(socket.id);
         var bidHistory = biddingHistory.get(roomID);
         if (!checkCorrectBid(bid, bidHistory)) {
-            console.log("Illegal bid / Not your turn!");
             return;
-        } // TODO - testing, add turn check later
+        }
         biddingHistory.get(roomID).push(bid);
+        io.in(roomID).emit('bid-made', bid);
         if (checkForThreePasses(roomID)) {
             // Bidding is over.
             var declarer = (0, server_utils_1.findDeclarer)(biddingHistory.get(roomID));
@@ -317,7 +321,6 @@ io.on('connection', function (socket) {
             io.in(roomID).emit('bidding-over');
             return;
         }
-        io.in(roomID).emit('bid-made', bid);
     });
     socket.on('get-hands', function () {
         sendCards(socket);
