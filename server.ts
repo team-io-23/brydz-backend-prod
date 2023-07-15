@@ -162,7 +162,7 @@ export function checkCorrectBid(bid: Bid, bidHistory: Bid[]) {
 
 function checkForThreePasses(roomID: number) {
     let bids = biddingHistory.get(roomID)!;
-    if (bids.length < 3) {
+    if (bids.length <= 4) { // 4 because we start with a "fake" bid
         return false;
     }
 
